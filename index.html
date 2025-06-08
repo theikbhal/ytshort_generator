@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node.js Image Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        textarea,
+        input[type="text"],
+        input[type="color"],
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .preview img {
+            max-width: 100%;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Node.js Image Generator</h1>
+        
+        <form action="/generate-image" method="POST" enctype="multipart/form-data" target="_blank">
+            <div class="form-group">
+                <label for="text">Telugu Text:</label>
+                <textarea id="text" name="text" rows="8" required>టీచర్: "కిరణ్, నీవు ఎందుకు ఎప్పుడూ క్లాస్‌లో నిద్రపోతావు?"
+
+కిరణ్: "మేడం, మీ గొంతు చాలా స్వీట్‌గా ఉంటుంది!"
+
+టీచర్: "అవునా? అయితే నీవు నిద్రపోకుండా వినొచ్చు కదా?"
+
+కిరణ్: "మేడం, అదే ప్రాబ్లెమ్! నీ గొంతు జోలపాట లాగా ఉంటుంది!" 😂</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="background_color">Background Color:</label>
+                <input type="color" id="background_color" name="background_color" value="#000000">
+            </div>
+
+            <div class="form-group">
+                <label for="background_image_choice">Background Image Source:</label>
+                <select id="background_image_choice" name="background_image_choice" onchange="toggleBackgroundImageInput()">
+                    <option value="none">None</option>
+                    <option value="upload">Upload Image</option>
+                    <option value="url">Image Path (URL)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="background_image_upload_group" style="display: none;">
+                <label for="background_image_file">Upload Image:</label>
+                <input type="file" id="background_image_file" name="background_image_file" accept="image/*">
+            </div>
+
+            <div class="form-group" id="background_image_url_group" style="display: none;">
+                <label for="background_image_url">Image Path (URL):</label>
+                <input type="text" id="background_image_url" name="background_image_url" placeholder="e.g., https://example.com/image.jpg">
+            </div>
+
+            <div class="form-group" id="background_repeat_group" style="display: none;">
+                <label for="background_repeat_y">Repeat Vertically (Multiplier):</label>
+                <input type="number" id="background_repeat_y" name="background_repeat_y" value="3" step="1" min="1">
+            </div>
+
+            <div class="form-group">
+                <label for="text_color">Text Color:</label>
+                <input type="color" id="text_color" name="text_color" value="#FFFFFF">
+            </div>
+
+            <div class="form-group">
+                <label for="text_size">Text Size (px):</label>
+                <input type="number" id="text_size" name="text_size" value="48" min="10" max="100">
+            </div>
+
+            <div class="form-group">
+                <label for="line_spacing">Line Spacing (Multiplier):</label>
+                <input type="number" id="line_spacing" name="line_spacing" value="1.2" step="0.1" min="0.5" max="3.0">
+            </div>
+
+            <div class="form-group">
+                <input type="checkbox" id="add_text_overlay" name="add_text_overlay" onchange="toggleOverlayPaddingInput()">
+                <label for="add_text_overlay">Add Black Text Overlay</label>
+            </div>
+
+            <div class="form-group" id="overlay_padding_group" style="display: none;">
+                <label>Text Overlay Padding (pixels):</label>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label for="overlay_padding_top">Top:</label>
+                        <input type="number" id="overlay_padding_top" name="overlay_padding_top" value="10" min="0">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="overlay_padding_bottom">Bottom:</label>
+                        <input type="number" id="overlay_padding_bottom" name="overlay_padding_bottom" value="10" min="0">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="overlay_padding_left">Left:</label>
+                        <input type="number" id="overlay_padding_left" name="overlay_padding_left" value="20" min="0">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="overlay_padding_right">Right:</label>
+                        <input type="number" id="overlay_padding_right" name="overlay_padding_right" value="20" min="0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Margins (pixels):</label>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label for="margin_top">Top:</label>
+                        <input type="number" id="margin_top" name="margin_top" value="50" min="0">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="margin_bottom">Bottom:</label>
+                        <input type="number" id="margin_bottom" name="margin_bottom" value="50" min="0">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="margin_left">Left:</label>
+                        <input type="number" id="margin_left" name="margin_left" value="50" min="0">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="margin_right">Right:</label>
+                        <input type="number" id="margin_right" name="margin_right" value="50" min="0">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit">Generate Image</button>
+        </form>
+    </div>
+
+    <script>
+        function toggleBackgroundImageInput() {
+            console.log("toggleBackgroundImageInput called. Current choice:", document.getElementById('background_image_choice').value);
+            var choice = document.getElementById('background_image_choice').value;
+            document.getElementById('background_image_upload_group').style.display = 'none';
+            document.getElementById('background_image_url_group').style.display = 'none';
+            document.getElementById('background_repeat_group').style.display = 'none';
+
+            if (choice === 'upload') {
+                document.getElementById('background_image_upload_group').style.display = 'block';
+            } else if (choice === 'url') {
+                document.getElementById('background_image_url_group').style.display = 'block';
+            }
+            if (choice === 'upload' || choice === 'url') {
+                document.getElementById('background_repeat_group').style.display = 'block';
+            }
+        }
+
+        function toggleOverlayPaddingInput() {
+            var overlayCheckbox = document.getElementById('add_text_overlay');
+            var overlayPaddingGroup = document.getElementById('overlay_padding_group');
+
+            if (overlayCheckbox.checked) {
+                overlayPaddingGroup.style.display = 'block';
+            } else {
+                overlayPaddingGroup.style.display = 'none';
+            }
+        }
+
+        // Initialize based on default selection
+        toggleBackgroundImageInput();
+        toggleOverlayPaddingInput(); // Initialize overlay padding visibility
+    </script>
+</body>
+</html> 
