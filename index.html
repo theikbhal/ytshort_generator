@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Node.js Image Generator</title>
+    <title>Node.js Image/Video Generator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            /* max-width: 800px; */
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -51,17 +51,21 @@
             margin-top: 20px;
             text-align: center;
         }
-        .preview img {
+        .preview img,
+        .preview video {
             max-width: 100%;
             border-radius: 4px;
+        }
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Node.js Image Generator</h1>
+        <h1>Node.js Image/Video Generator</h1>
         
-        <form action="/generate-image" method="POST" enctype="multipart/form-data" target="_blank">
+        <form id="imageForm" action="/generate" method="POST" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="text">Telugu Text:</label>
                 <textarea id="text" name="text" rows="8" required>టీచర్: "కిరణ్, నీవు ఎందుకు ఎప్పుడూ క్లాస్‌లో నిద్రపోతావు?"
@@ -79,11 +83,11 @@
             </div>
 
             <div class="form-group">
-                <label for="background_image_choice">Background Image Source:</label>
-                <select id="background_image_choice" name="background_image_choice" onchange="toggleBackgroundImageInput()">
+                <label>Background Image Source:</label>
+                <select id="background_image_source" name="background_image_source" onchange="toggleBackgroundImageInput()">
                     <option value="none">None</option>
                     <option value="upload">Upload Image</option>
-                    <option value="url">Image Path (URL)</option>
+                    <option value="url">Image URL</option>
                 </select>
             </div>
 
@@ -94,12 +98,12 @@
 
             <div class="form-group" id="background_image_url_group" style="display: none;">
                 <label for="background_image_url">Image Path (URL):</label>
-                <input type="text" id="background_image_url" name="background_image_url" placeholder="e.g., https://example.com/image.jpg">
+                <input type="text" id="background_image_url" name="background_image_url" placeholder="e.g., https://example.com/image.jpg" value="https://images.pexels.com/photos/3727252/pexels-photo-3727252.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2">
             </div>
 
             <div class="form-group" id="background_repeat_group" style="display: none;">
                 <label for="background_repeat_y">Repeat Vertically (Multiplier):</label>
-                <input type="number" id="background_repeat_y" name="background_repeat_y" value="3" step="1" min="1">
+                <input type="number" id="background_repeat_y" name="background_repeat_y" value="1" step="1" min="1">
             </div>
 
             <div class="form-group">
@@ -115,33 +119,6 @@
             <div class="form-group">
                 <label for="line_spacing">Line Spacing (Multiplier):</label>
                 <input type="number" id="line_spacing" name="line_spacing" value="1.2" step="0.1" min="0.5" max="3.0">
-            </div>
-
-            <div class="form-group">
-                <input type="checkbox" id="add_text_overlay" name="add_text_overlay" onchange="toggleOverlayPaddingInput()">
-                <label for="add_text_overlay">Add Black Text Overlay</label>
-            </div>
-
-            <div class="form-group" id="overlay_padding_group" style="display: none;">
-                <label>Text Overlay Padding (pixels):</label>
-                <div style="display: flex; gap: 10px;">
-                    <div style="flex: 1;">
-                        <label for="overlay_padding_top">Top:</label>
-                        <input type="number" id="overlay_padding_top" name="overlay_padding_top" value="10" min="0">
-                    </div>
-                    <div style="flex: 1;">
-                        <label for="overlay_padding_bottom">Bottom:</label>
-                        <input type="number" id="overlay_padding_bottom" name="overlay_padding_bottom" value="10" min="0">
-                    </div>
-                    <div style="flex: 1;">
-                        <label for="overlay_padding_left">Left:</label>
-                        <input type="number" id="overlay_padding_left" name="overlay_padding_left" value="20" min="0">
-                    </div>
-                    <div style="flex: 1;">
-                        <label for="overlay_padding_right">Right:</label>
-                        <input type="number" id="overlay_padding_right" name="overlay_padding_right" value="20" min="0">
-                    </div>
-                </div>
             </div>
 
             <div class="form-group">
@@ -166,14 +143,76 @@
                 </div>
             </div>
 
-            <button type="submit">Generate Image</button>
+            <div class="form-group">
+                <label>Text Alignment:</label>
+                <select id="text_align" name="textAlign">
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                </select>
+            </div>
+
+            <button type="submit" id="generateImageBtn">Generate Image</button>
         </form>
+
+        <hr>
+
+        <h2>Generated Content:</h2>
+        <div id="preview" class="preview">
+            <!-- Image and Video previews will be displayed here -->
+        </div>
+
+        <form id="videoForm" style="margin-top: 20px;" enctype="multipart/form-data">
+            <h3>Generate Video from Image:</h3>
+            <input type="hidden" id="generatedImagePath" name="imagePath">
+
+            <div class="form-group">
+                <label>Background Music Source:</label>
+                <select id="video_background_music_source" name="background_music_source" onchange="toggleVideoBackgroundMusicInput()">
+                    <option value="none">None</option>
+                    <option value="upload">Upload Music</option>
+                    <option value="url">Music URL</option>
+                    <option value="local" selected>Local File</option>
+                </select>
+            </div>
+
+            <div id="video_background_music_upload_group" style="display: none;">
+                <div class="form-group">
+                    <label for="video_background_music">Upload Background Music:</label>
+                    <input type="file" id="video_background_music" name="musicFile" accept="audio/*">
+                </div>
+            </div>
+
+            <div id="video_background_music_url_group" style="display: none;">
+                <div class="form-group">
+                    <label for="video_background_music_url">Background Music URL:</label>
+                    <input type="url" id="video_background_music_url" name="background_music_url" placeholder="https://example.com/music.mp3">
+                </div>
+            </div>
+
+            <div id="video_background_music_local_group" style="display: block;">
+                <div class="form-group">
+                    <label for="video_background_music_local_path">Background Music Local Path:</label>
+                    <input type="text" id="video_background_music_local_path" name="background_music_local_path" value="C:\workspace\n8n_space\joke_image_generation\tryagain\one\audio\Made In Andhra Student Song Thammudu Movie Pawan Kalyan Chandrabose #youtybeshorts [TubeRipper.com].mp3">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Video Duration (seconds):</label>
+                <input type="number" id="video_duration_input" name="videoDuration" value="5" min="1">
+            </div>
+
+            <button type="submit" id="generateVideoBtn">Generate Video</button>
+        </form>
+
     </div>
 
     <script>
+        let currentImagePath = ''; // To store the path of the generated image
+
         function toggleBackgroundImageInput() {
-            console.log("toggleBackgroundImageInput called. Current choice:", document.getElementById('background_image_choice').value);
-            var choice = document.getElementById('background_image_choice').value;
+            console.log("toggleBackgroundImageInput called. Current choice:", document.getElementById('background_image_source').value);
+            var choice = document.getElementById('background_image_source').value;
             document.getElementById('background_image_upload_group').style.display = 'none';
             document.getElementById('background_image_url_group').style.display = 'none';
             document.getElementById('background_repeat_group').style.display = 'none';
@@ -188,20 +227,123 @@
             }
         }
 
-        function toggleOverlayPaddingInput() {
-            var overlayCheckbox = document.getElementById('add_text_overlay');
-            var overlayPaddingGroup = document.getElementById('overlay_padding_group');
+        function toggleVideoBackgroundMusicInput() {
+            var musicSource = document.getElementById('video_background_music_source').value;
+            var musicUploadGroup = document.getElementById('video_background_music_upload_group');
+            var musicUrlGroup = document.getElementById('video_background_music_url_group');
+            var musicLocalGroup = document.getElementById('video_background_music_local_group');
 
-            if (overlayCheckbox.checked) {
-                overlayPaddingGroup.style.display = 'block';
+            if (musicSource === 'upload') {
+                musicUploadGroup.style.display = 'block';
+                musicUrlGroup.style.display = 'none';
+                musicLocalGroup.style.display = 'none';
+            } else if (musicSource === 'url') {
+                musicUploadGroup.style.display = 'none';
+                musicUrlGroup.style.display = 'block';
+                musicLocalGroup.style.display = 'none';
+            } else if (musicSource === 'local') {
+                musicUploadGroup.style.display = 'none';
+                musicUrlGroup.style.display = 'none';
+                musicLocalGroup.style.display = 'block';
             } else {
-                overlayPaddingGroup.style.display = 'none';
+                musicUploadGroup.style.display = 'none';
+                musicUrlGroup.style.display = 'none';
+                musicLocalGroup.style.display = 'none';
             }
         }
 
-        // Initialize based on default selection
+        // Event listener for image generation form
+        document.getElementById('imageForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(this);
+
+            const previewDiv = document.getElementById('preview');
+            previewDiv.innerHTML = '<p>Generating image...</p>';
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.imagePath) {
+                        const imgElement = document.createElement('img');
+                        imgElement.src = data.imagePath;
+                        previewDiv.innerHTML = ''; // Clear status message
+                        previewDiv.appendChild(imgElement);
+
+                        // Store the generated image path for video generation
+                        document.getElementById('generatedImagePath').value = data.imagePath;
+                        alert('Image generated successfully! You can now generate a video.');
+                    } else {
+                        alert("Image generation failed: No image path returned.");
+                    }
+
+                } else {
+                    const errorText = await response.text();
+                    alert('Image generation failed: ' + errorText);
+                }
+
+            } catch (error) {
+                console.error('Error during image generation:', error);
+                alert('Image generation failed: ' + error.message);
+            }
+        });
+
+        // Event listener for video generation form
+        document.getElementById('videoForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const generatedImagePath = document.getElementById('generatedImagePath').value;
+            if (!generatedImagePath) {
+                alert('Please generate an image first.');
+                return;
+            }
+
+            const videoFormData = new FormData(this);
+
+            const previewDiv = document.getElementById('preview');
+            previewDiv.innerHTML = '<p>Generating video...</p>';
+
+            try {
+                const videoResponse = await fetch('/generate-video', {
+                    method: 'POST',
+                    body: videoFormData
+                });
+
+                if (videoResponse.ok) {
+                    const videoResult = await videoResponse.json();
+                    const videoElement = document.createElement('video');
+                    videoElement.controls = true;
+                    videoElement.src = videoResult.videoPath;
+                    previewDiv.innerHTML = ''; // Clear status message
+                    previewDiv.appendChild(videoElement);
+
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = videoResult.videoPath;
+                    downloadLink.download = 'generated_video.mp4'; // Default download filename
+                    downloadLink.textContent = 'Download Video';
+                    downloadLink.style.display = 'block'; // Make it visible
+                    downloadLink.style.marginTop = '10px';
+                    previewDiv.appendChild(downloadLink);
+
+                } else {
+                    const errorText = await videoResponse.text();
+                    previewDiv.innerHTML = `<p style="color: red;">Video generation failed: ${errorText}</p>`;
+                }
+
+            } catch (error) {
+                console.error('Error during video generation:', error);
+                alert('Video generation failed: ' + error.message);
+            }
+        });
+
+        // Initialize based on default selections
         toggleBackgroundImageInput();
-        toggleOverlayPaddingInput(); // Initialize overlay padding visibility
+        toggleVideoBackgroundMusicInput(); // Initialize the new music input for video form
     </script>
 </body>
 </html> 
